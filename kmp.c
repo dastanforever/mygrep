@@ -13,6 +13,17 @@ int kmparr[30];
 #define MAX_SIZE 3000
 #define SLIDE_SIZE 20
 
+/* Color Schemes.*/
+#define RED   "\x1B[31m"
+#define GRN   "\x1B[32m"
+#define YEL   "\x1B[33m"
+#define BLU   "\x1B[34m"
+#define MAG   "\x1B[35m"
+#define CYN   "\x1B[36m"
+#define WHT   "\x1B[37m"
+#define RESET "\x1B[0m"
+
+
 struct results
 {
 	char st[200];
@@ -92,7 +103,7 @@ void getNextCharactersFromString(char * text, char * result, int current_positio
 int stateStore = 0, matches;
 
 void findResultInBuffer(struct results * res, int tillFound, char text[], char * pattern, char * slide, int * kmpArray, int patternlength, int textlength) {
-	int i = 0, j = 0, afterLength = 0;
+	int i = 0, j = 0;
 	j = stateStore;
 	for (i = 0; i < textlength; ++i)
 	{
@@ -105,10 +116,11 @@ void findResultInBuffer(struct results * res, int tillFound, char text[], char *
 					j = kmparr[j];
 					char result[150];
 					getLastCharsFromString(slide, result, 20);
+					printf("Before = %s\n", result);
 					getNextCharactersFromString(text, result, i, 20);
-					printf("%s\n", result);
+					//printf("%s\n", result);
+					printf("After = %s\n", result);
 					//res[tillFound++].st = result;
-					afterLength = 15;
 				}
 				break;
 			} else if (j == 0) break;
@@ -118,32 +130,60 @@ void findResultInBuffer(struct results * res, int tillFound, char text[], char *
 	stateStore = j;
 }
 
-int main(void) {
 
-	struct results res[100];
-	clock_t begin = clock();
+// implement all the argument validations.
+int check_args(int argc, char * argv[]) {
 
-	int file_descriptor = open("in.txt", O_RDWR, S_IREAD);
-	char buffer[MAX_SIZE], SLIDING_WINDOW[MAX_SIZE];
-	int buffer_size;
-	char pattern[] = "understand";
-	const int patternlength= strlen(pattern);
-	int kmparray[patternlength];
-	compute(kmparr, pattern, patternlength);
+}
 
-	while((buffer_size = read(file_descriptor, buffer, MAX_SIZE)) > 0) {
-		buffer[buffer_size] = '\0';
-		findResultInBuffer(res, 0, buffer, pattern, SLIDING_WINDOW, kmparr, patternlength, buffer_size);
+int main(int argc, char *argv[]) {
+
+	if (argc == 3)
+	{
+		struct results res[100];
+		clock_t begin = clock();
+		
+		if(access(argv[2], F_OK ) != -1 && access(argv[2], R_OK) != -1) {
+			int file_descriptor = open(argv[2], O_RDWR, S_IREAD);
+			char buffer[MAX_SIZE], SLIDING_WINDOW[MAX_SIZE];
+			int buffer_size;
+
+			int i = 0;
+			char pattern[150];
+			const int patternlength= strlen(argv[1]);
+
+			for (i = 0; i < patternlength; ++i)
+				pattern[i] = argv[1][i];
+
+			pattern[strlen(argv[1])] = '\0';
+	
+			int kmparray[patternlength];
+			compute(kmparr, pattern, patternlength);
+
+			while((buffer_size = read(file_descriptor, buffer, MAX_SIZE)) > 0) {
+				buffer[buffer_size] = '\0';
+				findResultInBuffer(res, 0, buffer, pattern, SLIDING_WINDOW, kmparr, patternlength, buffer_size);
+			}
+
+			//const int buffer_size = read(file_descriptor, buffer, MAX_SIZE);
+			// take from sysargs.
+			clock_t end = clock();
+			double time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
+			printf("Time : %lf\n", time_spent);
+		}
+		else {
+			printf("Specify the file with corrent name and permissions.\n");
+		}
+
 	}
+	else {
 
-	//const int buffer_size = read(file_descriptor, buffer, MAX_SIZE);
-	// take from sysargs.
-	clock_t end = clock();
-	double time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
-	printf("Time : %lf\n", time_spent);
+		// write help code.
 
-
-	// compute kmp array.
+		printf("The correct usage is - ./grep 'pattern' 'filename'\n");
+		printf("Without quotes.\n");
+		printf("For help, ./grep help\n");
+	}
 
 	return 0;
 }
